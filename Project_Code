@@ -1,0 +1,89 @@
+#I completed this project when I was taking a course with Udemy. The primary focus is to perform some exploratory data analysis and data visualization. 
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+#load data and check basic information 
+df = pd.read_csv('#FILE PATH#')
+df.info()
+df.head(5)
+df.value_counts().head(5)
+
+#find the top 5 zip code
+df['zip'].value_counts()
+df['zip'].value_counts().head(5)
+
+#find the top 5 township
+df['twp'].value_counts().head(5)
+
+#find how many total title codes are in the dataset
+df['title'].nunique()
+#len(df['title'].unique())
+
+#create a column that shows the reason of calls
+df['reason'] = df['title'].apply(lambda x: x.split(':')[0])
+#find the number 1 reason of calls
+df['reason'].value_counts()
+#df['reason'].value_counts().head(1)
+
+#create a count plot that shows the number of calls by reason
+sns.countplot(x='reason', data=df)
+plt.show()
+
+#convert the type of data in timeStamp from string to datetime (in this case, I created a new column to store the converted data)
+print(type('timeStamp'))
+df['Datetime'] = pd.to_datetime(df['timeStamp'])
+
+#create new columns of Hour, Month and Day_of_Week to extract time information
+df['Hour'] = df['Datetime'].apply(lambda x: x.hour)
+df['Month'] = df['Datetime'].apply(lambda x: x.month)
+df['Day_of_Week'] = df['Datetime'].apply(lambda x:x.dayofweek)
+df.head(5)
+
+#convert the Day_of_Week from integer to string to show the actual day, ex. Mon, Tue...
+df['Day_of_Week'] = df['Day_of_Week'].map({0:'Mon', 1:'Tue', 2:'Wed', 3:'Thu', 4: 'Fri', 5:'Sat', 6:'Sun'})
+
+#create a countplot that shows the counts of calls per day_of_week and per reason
+sns.countplot(x='Day_of_Week', hue='reason', data=df)
+plt.legend(bbox_to_anchor=(1,0.8), loc=2, borderaxespad=0.)
+plt.show()
+
+#create a countplot that shows the counts of calls per month and per reason
+sns.countplot(x='Month', hue='reason', data=df)
+plt.legend(bbox_to_anchor=(1.02,0.8), loc=2, borderaxespad=0.)
+plt.show()
+
+#create a plot that take the missing months into account
+byMonth = df. groupby('Month').count()
+byMonth['lat'].plot()
+plt.show()
+
+#create a seaborn linear plot to show the number of calls per month
+sns.lmplot(x='Month', y='twp', data=byMonth.reset_index()) #-- reset index to turn Month to a column
+plt.show() #--> graph show increased error going into the missing months
+
+#Create a new column "Date" and create a plot to show the number of calls per Date
+df['Date'] = df['Datetime'].apply(lambda x: x.date())
+df.groupby('Date').count().plot()
+plt.tight_layout()
+plt.show()
+
+#create a plot that shows the count of calls per date for each reason
+df[df['reason']=='Traffic'].groupby('Date').count()['lat'].plot()
+plt.title('Traffic')
+df[df['reason']=='EMS'].groupby('Date').count()['lat'].plot()
+plt.title('EMS')
+df[df['reason']=='Fire'].groupby('Date').count()['lat'].plot()
+plt.title('Fire')
+plt.tight_layout()
+plt.show()
+
+#prepare the dataset to matrix form to create heatmaps
+dayhour = df.groupby(by=['Day_of_Week', 'Hour']).count()['reason'].unstack()
+sns.heatmap(dayhour, cmap='viridis')
+sns.clustermap(dayhour, cmap='viridis')
+daymonth= df.groupby(by=['Day_of_Week', 'Month']).count()['reason'].unstack()
+sns.heatmap(daymonth, cmap='viridis')
+sns.clustermap(daymonth, cmap='coolwarm')
